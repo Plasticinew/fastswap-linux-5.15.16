@@ -31,6 +31,7 @@
 #define SWAP_AREA_SHIFT 35
 #define NUM_KFIFOS_ALLOC 128
 #define NUM_KFIFOS_FREE 128
+#define MEM_NODE_NUM 4
 
 /* Defined in directswap/directswap.c */
 extern bool __direct_swap_enabled;
@@ -49,7 +50,7 @@ typedef struct {
 } remote_address_t;
 
 struct allocator_page_queue {
-    atomic_t rkey;
+    atomic_t rkey[MEM_NODE_NUM];
     atomic64_t begin;
     atomic64_t end;
     atomic64_t pages[ALLOCATE_BUFFER_SIZE];

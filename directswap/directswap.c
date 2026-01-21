@@ -55,12 +55,15 @@ struct deallocator_page_queues *queues_deallocator = NULL;
 EXPORT_SYMBOL(queues_deallocator);
 
 pgoff_t raddr2offset(uint64_t raddr) {
-  return (raddr & (((uint64_t)1 << SWAP_AREA_SHIFT) - 1)) >> PAGE_SHIFT;
+    uint32_t mnode = (raddr >> 57) & 0x7F;
+    mnode = mnode << (SWAP_AREA_SHIFT - PAGE_SHIFT);
+  return (raddr & (((uint64_t)1 << SWAP_AREA_SHIFT) - 1)) >> PAGE_SHIFT + mnode;
 }
 EXPORT_SYMBOL(raddr2offset);
 
 uint64_t offset2raddr(pgoff_t offset) {
-  return (offset << PAGE_SHIFT) + base_addr;
+    uint32_t mnode = offset >> (SWAP_AREA_SHIFT - PAGE_SHIFT);
+  return ((offset - (mnode << (SWAP_AREA_SHIFT - PAGE_SHIFT))) << PAGE_SHIFT) + base_addr + (mnode << 57);
 }
 EXPORT_SYMBOL(offset2raddr);
 
@@ -75,7 +78,10 @@ int allocator_page_queue_init_dram(void) {
 	}
 	for(i = 0;i < NUM_KFIFOS_ALLOC; ++i) {
     	queue_allocator = &queues_allocator->queues[i];
-    	atomic_set(&queue_allocator->rkey, 0);
+        for(j = 0; j < MEM_NODE_NUM; ++j) {
+            atomic_set(&queue_allocator->rkey[j], 0);
+        }
+    	// atomic_set(&queue_allocator->rkey, 0);
     	atomic64_set(&queue_allocator->begin, 0);
     	atomic64_set(&queue_allocator->end, 0);
     	for(j = 0;j < ALLOCATE_BUFFER_SIZE; ++j) {

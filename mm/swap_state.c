@@ -458,7 +458,9 @@ struct page *__read_swap_cache_async(swp_entry_t entry, gfp_t gfp_mask,
 		 * else swap_off will be aborted if we return NULL.
 		 */
 		if (!__swp_swapcount(entry) && swap_slot_cache_enabled) {
-			pr_err("[DirectSwap]: __read_swap_cache_async swp_swapcount failed with error code %d", 1);
+			pr_err("[DirectSwap]: __read_swap_cache_async swp_swapcount failed with error code %d at %lx", 1, swp_offset(entry));
+			// int count = swp_swapcount(si, entry);
+			// pr_err("[DirectSwap]: entry %lx swapcount is %d", swp_offset(entry), count);
 			return NULL;
 		}
 
