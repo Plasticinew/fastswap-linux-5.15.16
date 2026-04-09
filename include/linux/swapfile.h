@@ -10,6 +10,8 @@ extern spinlock_t swap_lock;
 extern struct plist_head swap_active_head;
 extern struct swap_info_struct *swap_info[];
 extern uint8_t core_id_to_swap_type[NUM_KFIFOS_ALLOC];
+extern uint8_t node_id_to_swap_type[NUM_KFIFOS_ALLOC];
+extern uint8_t swap_type_to_core_id[NUM_KFIFOS_ALLOC];
 extern int try_to_unuse(unsigned int, bool, unsigned long);
 extern unsigned long generic_max_swapfile_size(void);
 extern unsigned long max_swapfile_size(void);

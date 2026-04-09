@@ -55,6 +55,12 @@ static uint8_t num_current_direct_swap_partition = 0;
 uint8_t core_id_to_swap_type[NUM_KFIFOS_ALLOC];
 EXPORT_SYMBOL_GPL(core_id_to_swap_type);
 
+uint8_t node_id_to_swap_type[NUM_KFIFOS_ALLOC];
+EXPORT_SYMBOL_GPL(node_id_to_swap_type);
+
+uint8_t swap_type_to_node_id[NUM_KFIFOS_ALLOC];
+EXPORT_SYMBOL_GPL(swap_type_to_node_id);
+
 DEFINE_SPINLOCK(swap_lock);
 static unsigned int nr_swapfiles;
 atomic_long_t nr_swap_pages;
@@ -724,23 +730,25 @@ static void set_direct_swap_partition(struct swap_info_struct *p)
 	int i;
 	int id = (int)p->type;
 	__partition_is_direct_swap[id] = true;
-	if(num_current_direct_swap_partition == 0) {
-		for(i = 0;i < NUM_KFIFOS_ALLOC; ++i) {
-			core_id_to_swap_type[i] = id;
-		}
-	} else if(num_current_direct_swap_partition == 1) {
-		for(i = 4;i < 40; ++i) {
-			core_id_to_swap_type[i] = id;
-		}
-	} else if(num_current_direct_swap_partition == 2) {
-		for(i = 40;i < 48; ++i) {
-			core_id_to_swap_type[i] = id;
-		}
-	} else if(num_current_direct_swap_partition == 3) {
-		for(i = 48;i < 63; ++i) {
-			core_id_to_swap_type[i] = id;
-		}
-	} 
+	node_id_to_swap_type[num_current_direct_swap_partition]=id;
+	swap_type_to_node_id[id] = num_current_direct_swap_partition;
+	// if(num_current_direct_swap_partition == 0) {
+	// 	for(i = 0;i < NUM_KFIFOS_ALLOC; ++i) {
+	// 		core_id_to_swap_type[i] = id;
+	// 	}
+	// } else if(num_current_direct_swap_partition == 1) {
+	// 	for(i = 4;i < 40; ++i) {
+	// 		core_id_to_swap_type[i] = id;
+	// 	}
+	// } else if(num_current_direct_swap_partition == 2) {
+	// 	for(i = 40;i < 48; ++i) {
+	// 		core_id_to_swap_type[i] = id;
+	// 	}
+	// } else if(num_current_direct_swap_partition == 3) {
+	// 	for(i = 48;i < 63; ++i) {
+	// 		core_id_to_swap_type[i] = id;
+	// 	}
+	// } 
 	num_current_direct_swap_partition++;
 	pr_info("Register a directswap partition with id = %d", id);
 }
