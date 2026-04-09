@@ -55,18 +55,18 @@ struct deallocator_page_queues *queues_deallocator = NULL;
 EXPORT_SYMBOL(queues_deallocator);
 
 pgoff_t raddr2offset(uint64_t raddr) {
-    uint32_t mnode = (raddr >> 57) & 0xF;
-    mnode = mnode << (SWAP_AREA_SHIFT - PAGE_SHIFT);
-  return (raddr & (((uint64_t)1 << SWAP_AREA_SHIFT) - 1)) >> PAGE_SHIFT + mnode;
-//   return (raddr & (((uint64_t)1 << SWAP_AREA_SHIFT) - 1)) >> PAGE_SHIFT;
+    // uint32_t mnode = (raddr >> 57) & 0xF;
+    // mnode = mnode << (SWAP_AREA_SHIFT - PAGE_SHIFT);
+//   return (raddr & (((uint64_t)1 << SWAP_AREA_SHIFT) - 1)) >> PAGE_SHIFT + mnode;
+  return (raddr & (((uint64_t)1 << SWAP_AREA_SHIFT) - 1)) >> PAGE_SHIFT;
 }
 EXPORT_SYMBOL(raddr2offset);
 
 uint64_t offset2raddr(pgoff_t offset) {
-	// uint32_t type = offset >> SWP_TYPE_SHIFT;
-    uint32_t mnode = (offset >> (SWAP_AREA_SHIFT - PAGE_SHIFT)) & 0xF ;
-    // uint32_t mnode = swap_type_to_node_id[type];
-  return ((offset - (mnode << (SWAP_AREA_SHIFT - PAGE_SHIFT))) << PAGE_SHIFT) + base_addr + (mnode << 57);
+	uint32_t type = offset >> SWP_TYPE_SHIFT;
+    // uint32_t mnode = (offset >> (SWAP_AREA_SHIFT - PAGE_SHIFT)) & 0xF ;
+    uint32_t mnode = swap_type_to_node_id[type];
+  return ((offset - (mnode << (SWAP_AREA_SHIFT - PAGE_SHIFT))) << PAGE_SHIFT) + base_addr + ((uint64_t)mnode << 57);
 }
 EXPORT_SYMBOL(offset2raddr);
 
@@ -396,9 +396,9 @@ int direct_swap_alloc_remote_pages(int n_goal, unsigned long entry_size, swp_ent
 		while(get_length_allocator(nproc) == 0)	;
 		remote_addr = pop_queue_allocator(nproc);
 		/* Update corresponding swap_map entry*/
-		// node_id = (remote_addr >> 57) & 0x7F;
+		node_id = (remote_addr >> 57) & 0x7F;
 		// type = core_id_to_swap_type[nproc];
-		type = node_id_to_swap_type[0];
+		type = node_id_to_swap_type[node_id];
 		offset = raddr2offset(remote_addr);
 		swp_entries[count] = swp_entry(type, offset);
 
