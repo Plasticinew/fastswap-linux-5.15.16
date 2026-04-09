@@ -395,7 +395,7 @@ int direct_swap_alloc_remote_pages(int n_goal, unsigned long entry_size, swp_ent
 		while(get_length_allocator(nproc) == 0)	;
 		remote_addr = pop_queue_allocator(nproc);
 		/* Update corresponding swap_map entry*/
-		node_id = (raddr >> 57) & 0x7F;
+		node_id = (remote_addr >> 57) & 0x7F;
 		// type = core_id_to_swap_type[nproc];
 		type = node_id_to_swap_type[node_id];
 		offset = raddr2offset(remote_addr);
