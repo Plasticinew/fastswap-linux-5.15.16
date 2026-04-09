@@ -66,7 +66,7 @@ uint64_t offset2raddr(pgoff_t offset) {
 	uint32_t type = offset >> SWP_TYPE_SHIFT;
     // uint32_t mnode = (offset >> (SWAP_AREA_SHIFT - PAGE_SHIFT)) & 0xF ;
     uint32_t mnode = swap_type_to_node_id[type];
-  return ((offset - (mnode << (SWAP_AREA_SHIFT - PAGE_SHIFT))) << PAGE_SHIFT) + base_addr + ((uint64_t)mnode << 57);
+  return (((uint64_t)offset - ((uint64_t)mnode << (SWAP_AREA_SHIFT - PAGE_SHIFT))) << PAGE_SHIFT) + base_addr + ((uint64_t)mnode << 57);
 }
 EXPORT_SYMBOL(offset2raddr);
 
