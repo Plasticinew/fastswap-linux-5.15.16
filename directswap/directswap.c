@@ -65,11 +65,12 @@ EXPORT_SYMBOL(raddr2offset);
 uint64_t offset2raddr(pgoff_t offset) {
 	uint32_t type = offset >> SWP_TYPE_SHIFT;
     // uint32_t mnode = (offset >> (SWAP_AREA_SHIFT - PAGE_SHIFT)) & 0xF ;
-    uint32_t mnode = swap_type_to_node_id[type];
-  return (((uint64_t)offset - ((uint64_t)mnode << (SWAP_AREA_SHIFT - PAGE_SHIFT))) << PAGE_SHIFT) + base_addr + ((uint64_t)mnode << 57);
+    uint64_t mnode = type;
+//   return (((uint64_t)offset - ((uint64_t)mnode << (SWAP_AREA_SHIFT - PAGE_SHIFT))) << PAGE_SHIFT) + base_addr + ((uint64_t)mnode << 57);
+  return ((offset & SWP_OFFSET_MASK) << PAGE_SHIFT) + base_addr + (((uint64_t)mnode) << 57);
 }
-EXPORT_SYMBOL(offset2raddr);
 
+EXPORT_SYMBOL(offset2raddr);
 int allocator_page_queue_init_dram(void) {
 	uint32_t i, j;
 	struct allocator_page_queue* queue_allocator;
@@ -429,7 +430,8 @@ int direct_swap_free_remote_page(swp_entry_t entry) {
 		if(count >= 10) {
 			pr_err("id = %d: direct_swap_free_remote_page waiting too long...", nproc);
 		}
-		remote_addr = offset2raddr(swp_offset(entry));
+		// remote_addr = offset2raddr(swp_offset(entry));
+		remote_addr = offset2raddr(entry.val);
 		push_queue_deallocator(remote_addr, nproc);
 		return 0;
 	}

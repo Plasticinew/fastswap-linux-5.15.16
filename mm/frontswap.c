@@ -273,7 +273,7 @@ int __frontswap_store(struct page *page)
 
 	/* Try to store in each implementation, until one succeeds. */
 	for_each_frontswap_ops(ops) {
-		ret = ops->store(type, offset, page);
+		ret = ops->store(type, entry.val, page);
 		if (!ret) /* successful store */
 			break;
 	}
@@ -313,7 +313,7 @@ int __frontswap_load(struct page *page)
 
 	/* Try loading from each implementation, until one succeeds. */
 	for_each_frontswap_ops(ops) {
-		ret = ops->load(type, offset, page);
+		ret = ops->load(type, entry.val, page);
 		if (!ret) /* successful load */
 			break;
 	}
@@ -348,7 +348,7 @@ int __frontswap_load_async(struct page *page)
 
 	/* Try loading from each implementation, until one succeeds. */
 	for_each_frontswap_ops(ops) {
-		ret = ops->load_async(type, offset, page);
+		ret = ops->load_async(type, entry.val, page);
 		if (!ret) /* successful load */
 			break;
 	}
