@@ -399,7 +399,8 @@ int direct_swap_alloc_remote_pages(int n_goal, unsigned long entry_size, swp_ent
 		/* Update corresponding swap_map entry*/
 		node_id = (remote_addr >> 57) & 0x7F;
 		// type = core_id_to_swap_type[nproc];
-		type = node_id_to_swap_type[node_id];
+		// type = node_id_to_swap_type[node_id];
+        type = node_id;
 		offset = raddr2offset(remote_addr);
 		swp_entries[count] = swp_entry(type, offset);
 

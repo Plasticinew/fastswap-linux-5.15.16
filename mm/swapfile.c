@@ -730,6 +730,10 @@ static void set_direct_swap_partition(struct swap_info_struct *p)
 	int i;
 	int id = (int)p->type;
 	__partition_is_direct_swap[id] = true;
+    if(num_current_direct_swap_partition != id) {
+        pr_err("DirectSwap partition id should be assigned in order, expected id = %d, but got id = %d.\n", num_current_direct_swap_partition, id);
+        // return;
+    }
 	node_id_to_swap_type[num_current_direct_swap_partition]=id;
 	swap_type_to_node_id[id] = num_current_direct_swap_partition;
 	// if(num_current_direct_swap_partition == 0) {
