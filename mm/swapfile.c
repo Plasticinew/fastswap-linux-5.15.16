@@ -61,6 +61,19 @@ EXPORT_SYMBOL_GPL(node_id_to_swap_type);
 uint8_t swap_type_to_node_id[NUM_KFIFOS_ALLOC];
 EXPORT_SYMBOL_GPL(swap_type_to_node_id);
 
+void reset_direct_swap_mappings(void)
+{
+	int i;
+
+	num_current_direct_swap_partition = 0;
+	for (i = 0; i < NUM_KFIFOS_ALLOC; i++) {
+		core_id_to_swap_type[i] = 0;
+		node_id_to_swap_type[i] = 0;
+		swap_type_to_node_id[i] = 0;
+	}
+}
+EXPORT_SYMBOL_GPL(reset_direct_swap_mappings);
+
 DEFINE_SPINLOCK(swap_lock);
 static unsigned int nr_swapfiles;
 atomic_long_t nr_swap_pages;

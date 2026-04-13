@@ -66,6 +66,17 @@ uint64_t offset2raddr(pgoff_t offset) {
 	uint32_t type = offset >> SWP_TYPE_SHIFT;
     // uint32_t mnode = (offset >> (SWAP_AREA_SHIFT - PAGE_SHIFT)) & 0xF ;
     uint64_t mnode = type;
+
+    /*
+     * DirectSwap stores the remote node id in the swap type indirectly via the
+     * swap-type <-> mnode tables populated in set_direct_swap_partition().
+     * Using the raw swap type only works when direct-swap partitions happen to
+     * be registered as types 0..N-1, which is fragile once multiple remote
+     * nodes or pre-existing swap devices are involved.
+     */
+    if (type < MAX_SWAPFILES && is_direct_swap_area(type))
+        mnode = swap_type_to_node_id[type];
+
 //   return (((uint64_t)offset - ((uint64_t)mnode << (SWAP_AREA_SHIFT - PAGE_SHIFT))) << PAGE_SHIFT) + base_addr + ((uint64_t)mnode << 57);
   return ((offset & SWP_OFFSET_MASK) << PAGE_SHIFT) + base_addr + (((uint64_t)mnode) << 57);
 }
@@ -257,6 +268,7 @@ SYSCALL_DEFINE1(set_direct_swap_enabled, const char __user *, specialfile)
 
 	allocator_page_queue_init();
 	deallocator_page_queue_init();
+	reset_direct_swap_mappings();
 	int i;
 	for(i = 0;i < MAX_SWAPFILES; ++i) {
 		__partition_is_direct_swap[i] = false;
@@ -350,6 +362,7 @@ SYSCALL_DEFINE1(set_direct_swap_disabled, const char __user *, specialfile)
 	kvfree(p->frontswap_map);*/
 	vfree(queues_allocator);
 	vfree(queues_deallocator);
+	reset_direct_swap_mappings();
 
 	__direct_swap_enabled = 0;
 	
@@ -367,6 +380,7 @@ int direct_swap_alloc_remote_pages(int n_goal, unsigned long entry_size, swp_ent
 	struct swap_info_struct *si = NULL;
 	uint32_t idx;
 	uint64_t remote_addr;
+	uint64_t len_before, len_after;
 
 	count = 0;
 
@@ -394,19 +408,35 @@ int direct_swap_alloc_remote_pages(int n_goal, unsigned long entry_size, swp_ent
 	
 	/*Normal path*/
 	for(; count < n_goal ; count++) {
-		while(get_length_allocator(nproc) == 0)	;
+		unsigned long wait_start = jiffies;
+		while (get_length_allocator(nproc) == 0) {
+			cpu_relax();
+			if (time_after(jiffies, wait_start + HZ)) {
+				pr_err_ratelimited("[DirectSwap]: allocator queue empty on cpu %u while requesting %d pages.\n",
+						   nproc, n_goal);
+				wait_start = jiffies;
+			}
+		}
+		len_before = get_length_allocator(nproc);
 		remote_addr = pop_queue_allocator(nproc);
 		/* Update corresponding swap_map entry*/
 		node_id = (remote_addr >> 57) & 0x7F;
 		// type = core_id_to_swap_type[nproc];
-		// type = node_id_to_swap_type[node_id];
-        type = node_id;
+		type = node_id_to_swap_type[node_id];
 		offset = raddr2offset(remote_addr);
+		len_after = get_length_allocator(nproc);
 		swp_entries[count] = swp_entry(type, offset);
 
+		if (len_before <= 4 || len_after <= 4) {
+			pr_info_ratelimited("[DirectSwap]: allocator pop cpu=%u len_before=%llu len_after=%llu node_id=%d type=%d offset=%llu remote_addr=%#llx goal=%d\n",
+					    nproc, len_before, len_after, node_id, type,
+					    offset, remote_addr, n_goal);
+		}
+
 		si = swap_info[type];
-		if(unlikely(!si)) {
-			printk(KERN_ERR "[DirectSwap]: Invalid remote entry with type = %d.\n", type);
+		if (unlikely(node_id >= MEM_NODE_NUM || !si || !is_direct_swap_area(type))) {
+			printk(KERN_ERR "[DirectSwap]: Invalid remote entry with node_id = %d, type = %d.\n",
+			       node_id, type);
 			break;
 		}
 		WRITE_ONCE(si->swap_map[offset], SWAP_HAS_CACHE);
@@ -425,8 +455,15 @@ int direct_swap_free_remote_page(swp_entry_t entry) {
 	if(!is_direct_swap_area(type)) {
 		return 1;
 	} else {
+		unsigned long wait_start = jiffies;
 		while(get_length_deallocator(nproc) == DEALLOCATE_BUFFER_SIZE - 1 /*&& count < 100*/) {
 			count++;
+			cpu_relax();
+			if (time_after(jiffies, wait_start + HZ)) {
+				pr_err_ratelimited("id = %d: deallocator queue full while freeing directswap page.\n",
+						   nproc);
+				wait_start = jiffies;
+			}
 		}
 		if(count >= 10) {
 			pr_err("id = %d: direct_swap_free_remote_page waiting too long...", nproc);
