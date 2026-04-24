@@ -268,11 +268,12 @@ SYSCALL_DEFINE1(set_direct_swap_enabled, const char __user *, specialfile)
 
 	allocator_page_queue_init();
 	deallocator_page_queue_init();
-	reset_direct_swap_mappings();
-	int i;
-	for(i = 0;i < MAX_SWAPFILES; ++i) {
-		__partition_is_direct_swap[i] = false;
-	}
+	/*
+	 * Keep the swap-type <-> mnode mappings populated during swapon().
+	 * Clearing them here breaks the common "swapon first, enable later"
+	 * workflow because the direct-swap partitions have already been
+	 * registered in mm/swapfile.c.
+	 */
 	//__partition_is_direct_swap[MAX_SWAPFILES] = true;
 	//allocator_page_queue_init_dram();
 	//deallocator_page_queue_init_dram();
